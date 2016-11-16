@@ -19,7 +19,7 @@ $(function(){
 	});
 	$.getJSON(sfile, function(data){
 	    out.settings = data;
-	    selectGeochronometer(data.geochronometer);
+	    selectGeochronometer();
 	    out = populate(out,true);
 	    $("#INPUT").handsontable({ // add change handler asynchronously
 		afterChange: function(changes,source){
@@ -30,33 +30,6 @@ $(function(){
 	});
 	return out;
     };
-
-    $(".button").button()
-
-    $("#INPUT").handsontable({
-	data : [[]],
-	minRows: 100,
-	minCols: 26,
-	rowHeaders: true,
-	colHeaders: true,
-	contextMenu: true,
-	observeChanges: true,
-	manualColumnResize: true,
-	afterSelectionEnd: function (r,c,r2,c2){
-	    getData(r,c,r2,c2);
-	}
-    });
-
-    $("#OUTPUT").handsontable({
-	data : [[]],
-	minRows: 100,
-	minCols: 26,
-	rowHeaders: true,
-	colHeaders: true,
-	contextMenu: true,
-	observeChanges: false,
-	manualColumnResize: true
-    });
 
     function dnc(){
 	switch (IsoplotR.settings.geochronometer){
@@ -255,29 +228,13 @@ $(function(){
 	    IsoplotR.data = [nr,nc,dat];
 	}
     }
-
-    $.chooseMineral = function(){
-	var cst = IsoplotR.constants;
-	var mineral = $('option:selected', $("#mineral-option")).val();
-	switch (mineral){
-	case 'apatite':
-	    $("#etchfact").val(cst.etchfact[mineral]);
-	    $("#tracklength").val(cst.tracklength[mineral]);
-	    $("#mindens").val(cst.mindens[mineral]);
-	    break;
-	case 'zircon':
-	    $("#etchfact").val(cst.etchfact[mineral]);
-	    $("#tracklength").val(cst.tracklength[mineral]);
-	    $("#mindens").val(cst.mindens[mineral]);
-	    break;
-	}
-    }
     
     function showSettings(option){
 	var set = IsoplotR.settings[option];
 	var cst = IsoplotR.constants;
 	switch (option){
 	case 'U-Pb':
+	    $('.show4UPb').show();
 	    $('.hide4UPb').hide();
 	    $('#U238U235').val(cst.iratio.U238U235[0]);
 	    $('#errU238U235').val(cst.iratio.U238U235[1]);
@@ -287,6 +244,7 @@ $(function(){
 	    $('#errLambdaU235').val(cst.lambda.U235[1]);
 	    break;
 	case 'Ar-Ar':
+	    $('.show4ArAr').show();
 	    $('.hide4ArAr').hide();
 	    $('#Ar40Ar36').val(cst.iratio.Ar40Ar36[0]),
 	    $('#errAr40Ar36').val(cst.iratio.Ar40Ar36[1]),
@@ -294,6 +252,7 @@ $(function(){
 	    $('#errLambdaK40').val(cst.lambda.K40[1])
 	    break;
 	case 'U-Th-He':
+	    $('.show4UThHe').show();
 	    $('.hide4UThHe').hide();
 	    $('#U238U235').val(cst.iratio.U238U235[0]);
 	    $('#errU238U235').val(cst.iratio.U238U235[1]);
@@ -307,17 +266,27 @@ $(function(){
 	    $('#errLambdaSm147').val(cst.lambda.Sm147[1]);
 	    break;
 	case 'fissiontracks':
+	    $('.show4fissiontracks').show();
 	    $('.hide4fissiontracks').hide();
-	    if (set.format==3){
+	    if (set.format==1){
+		$('.show4EDM').show();
+		$('.hide4EDM').hide();
+	    } else if (set.format==2){
+		$('.show4ICP').show();
+		$('.hide4ICP').hide();
+	    } else if (set.format==3){
 		$('.show4absolute').show();
+		$('.hide4absolute').hide();
 	    }
-	    var mineral = set.mineral;
+	    $('#FT-options option[value='+set.format+']').
+		prop('selected', 'selected');
 	    $('#U238U235').val(cst.iratio.U238U235[0]);
 	    $('#errU238U235').val(cst.iratio.U238U235[1]);
 	    $('#LambdaU238').val(cst.lambda.U238[0]);
 	    $('#errLambdaU238').val(cst.lambda.U238[1]);
 	    $('#LambdaFission').val(cst.lambda.fission[0]);
 	    $('#errLambdaFission').val(cst.lambda.fission[1]);
+	    var mineral = set.mineral;
 	    $('#mineral-option option[value='+mineral+']').
 		prop('selected', 'selected');
 	    $('#etchfact').val(cst.etchfact[mineral]);
@@ -325,10 +294,12 @@ $(function(){
 	    $('#mindens').val(cst.mindens[mineral]);
 	    break;
 	case 'detritals':
+	    $('.show4detritals').show();
 	    $('.hide4detritals').hide();
 	    $('#headers-on').prop('checked',set.format==1);
 	    break;
 	case 'other':
+	    $('.show4other').show();
 	    $('.hide4other').hide();
 	    break;
 	case 'concordia':
@@ -357,6 +328,8 @@ $(function(){
 	    break;
 	case 'radial':
 	    $('#transformation option[value='+set.transformation+']').
+		prop('selected', 'selected');
+	    $('#mixtures option[value='+set.numpeaks+']').
 		prop('selected', 'selected');
 	    $('#mint').val(set.mint);
 	    $('#t0').val(set.t0);
@@ -476,7 +449,8 @@ $(function(){
 	    pdsettings.sigdig = $('#sigdig').val();
 	    break;
 	case 'radial':
-	    pdsettings.transformation = $('#transformation').prop("value");
+	    pdsettings.transformation =
+		$('option:selected', $("#transformation")).attr('value');
 	    pdsettings.mint = $('#mint').val();
 	    pdsettings.t0 = $('#t0').val();
 	    pdsettings.maxt = $('#maxt').val();
@@ -612,7 +586,7 @@ $(function(){
 	    var mineral = $('#mineral-option').prop('value');
 	    IsoplotR.settings[geochronometer].mineral = mineral;
 	    IsoplotR.settings[geochronometer].format = 
-		1*$('option:selected', $("#method-options")).attr('value');
+		1*$('option:selected', $("#FT-options")).attr('value');
 	    gcsettings.iratio.U238U235[0] = $("#U238U235").val();
 	    gcsettings.iratio.U238U235[1] = $("#errU238U235").val();
 	    gcsettings.lambda.U238[0] = $("#LambdaU238").val();
@@ -653,24 +627,14 @@ $(function(){
 	}
     }
     
-    $("select").selectmenu({ width : 'auto' });
-    $("#geochronometer").selectmenu({
-	change: function( event, ui ) {
-	    IsoplotR.settings.geochronometer =
-		$('option:selected', $("#geochronometer")).attr('id');
-	    selectGeochronometer();
-	}
-    });
-    $("#plotdevice").selectmenu({
-	change: function( event, ui ) { changePlotDevice(); },
-	focus: function( event, ui ) { changePlotDevice(); }
-    });
-
     function changePlotDevice(){
-	IsoplotR.settings.plotdevice = 
-	    $('option:selected', $("#plotdevice")).attr('id');
+	var gc = IsoplotR.settings.geochronometer;
+	var opd = IsoplotR.settings.plotdevice; // old plot device
+	var npd = $('option:selected', $("#plotdevice")).attr('id');
+	IsoplotR.settings.plotdevice = npd;
+	IsoplotR.optionschanged = false;
 	$('#myscript').empty();
-        if (IsoplotR.settings.plotdevice == 'ages'){
+        if (npd == 'ages'){
 	    $('#PLOT').hide();
 	    $('#PDF').hide();
 	    $('#RUN').show();
@@ -681,14 +645,16 @@ $(function(){
 	    $('#RUN').hide();
 	    $('#CSV').hide();
         }
-	IsoplotR.optionschanged = false;
-	populate(IsoplotR,true);
+	if (npd == "spectrum" | opd == "spectrum" | gc == "other"){
+	    populate(IsoplotR,true);
+	} else {
+	    populate(IsoplotR,false);
+	}
     }
-    
+
     function selectGeochronometer(){
 	var geochronometer = IsoplotR.settings.geochronometer;
 	var plotdevice = IsoplotR.settings.plotdevice;
-	$("#method").hide();
 	$("#Jdiv").hide();
 	$("#zetaDiv").hide();
 	$("#rhoDdiv").hide();
@@ -717,7 +683,6 @@ $(function(){
 	    var format = IsoplotR.settings.fissiontracks.format;
 	    setSelectedMenus([true,true,true,false,true,true,
 			      false,false,false,true,true,false]);
-	    $("#method").show();
 	    if (format < 3){ $("#zetaDiv").show(); }
 	    if (format < 2){ $("#rhoDdiv").show(); }
 	    if (format > 1){ $("#spotSizeDiv").show(); }
@@ -770,32 +735,98 @@ $(function(){
 	Shiny.onInputChange("data",IsoplotR.data);
 	Shiny.onInputChange("Rcommand",getRcommand(IsoplotR));
     }
-    
-    $("#helpmenu").dialog({ autoOpen: false });
 
-    $("#method-options").selectmenu({
-	change: function( event, ui ) {
-	    var geochronometer = IsoplotR.settings.geochronometer;
-	    var format = 1*$('option:selected', $("#method-options")).attr('value');
-	    IsoplotR.settings[geochronometer].format = format;
-	    if (format<3){
-		$("#zetaDiv").show();
-	    } else {
-		$("#zetaDiv").hide();
-	    }
-	    if (format<2){
-		$("#rhoDdiv").show();
-	    } else {
-		$("#rhoDdiv").hide();
-	    }
-	    if (format>1){
-		$("#spotSizeDiv").show();
-	    } else {
-		$("#spotSizeDiv").hide();
-	    }
-	    IsoplotR = populate(IsoplotR,true);
+    $.chooseNumRadialPeaks = function(){
+	IsoplotR.settings.radial.numpeaks =
+	    $('option:selected', $("#mixtures")).attr('value');	
+    }
+    
+    $.chooseTransformation = function(){
+	IsoplotR.settings.radial.transformation =
+	    $('option:selected', $("#transformation")).attr('value');
+    }
+    
+    $.chooseFTmethod = function(){
+	var geochronometer = IsoplotR.settings.geochronometer;
+	var format = 1*$('option:selected', $("#FT-options")).attr('value');
+	IsoplotR.settings[geochronometer].format = format;
+	switch (format){
+	case 1:
+	    $(".show4EDM").show();
+	    $(".hide4EDM").hide();
+	    break;
+	case 2:
+	    $(".show4ICP").show();
+	    $(".hide4ICP").hide();
+	    break;
+	case 3:
+	    $(".show4absolute").show();
+	    $(".hide4absolute").hide();
+	    break;
+	}
+	IsoplotR = populate(IsoplotR,true);
+    }
+    
+    $.chooseMineral = function(){
+	var cst = IsoplotR.constants;
+	var mineral = $('option:selected', $("#mineral-option")).val();
+	switch (mineral){
+	case 'apatite':
+	    $("#etchfact").val(cst.etchfact[mineral]);
+	    $("#tracklength").val(cst.tracklength[mineral]);
+	    $("#mindens").val(cst.mindens[mineral]);
+	    break;
+	case 'zircon':
+	    $("#etchfact").val(cst.etchfact[mineral]);
+	    $("#tracklength").val(cst.tracklength[mineral]);
+	    $("#mindens").val(cst.mindens[mineral]);
+	    break;
+	}
+    }
+
+    $(".hidden").hide()
+    
+    $(".button").button()
+
+    $("#INPUT").handsontable({
+	data : [[]],
+	minRows: 100,
+	minCols: 26,
+	rowHeaders: true,
+	colHeaders: true,
+	contextMenu: true,
+	observeChanges: true,
+	manualColumnResize: true,
+	afterSelectionEnd: function (r,c,r2,c2){
+	    getData(r,c,r2,c2);
 	}
     });
+
+    $("#OUTPUT").handsontable({
+	data : [[]],
+	minRows: 100,
+	minCols: 26,
+	rowHeaders: true,
+	colHeaders: true,
+	contextMenu: true,
+	observeChanges: false,
+	manualColumnResize: true
+    });
+    
+    $("select").selectmenu({ width : 'auto' });
+    $("#geochronometer").selectmenu({
+	change: function( event, ui ) {
+	    IsoplotR.settings.geochronometer =
+		$('option:selected', $("#geochronometer")).attr('id');
+	    selectGeochronometer();
+	}
+    });
+    $("#plotdevice").selectmenu({
+	change: function( event, ui ) { changePlotDevice(); },
+	focus: function( event, ui ) { changePlotDevice(); }
+    });
+    
+    $("#helpmenu").dialog({ autoOpen: false });
     
     $('body').on('click', 'help', function(){
 	var text = help($(this).attr('id'));
